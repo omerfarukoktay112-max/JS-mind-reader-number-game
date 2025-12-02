@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Mind Reader: Advanced Number Guessing Game</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f0f8ff;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      h1,
+      h2 {
+        text-align: center;
+      }
+      input[type="number"],
+      select,
+      button {
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      button {
+        cursor: pointer;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #218838;
+      }
+      #feedback,
+      #statistics,
+      #hintArea {
+        margin-top: 15px;
+        padding: 10px;
+        border: 1px dashed #ddd;
+        border-radius: 5px;
+        min-height: 40px;
+      }
+      .guess-list {
+        list-style: none;
+        padding: 0;
+      }
+      .guess-list li {
+        margin-bottom: 5px;
+        border-bottom: 1px dotted #eee;
+      }
+      @keyframes shake {
+        0% {
+          transform: translateX(0);
+        }
+        25% {
+          transform: translateX(-5px);
+        }
+        50% {
+          transform: translateX(5px);
+        }
+        75% {
+          transform: translateX(-5px);
+        }
+        100% {
+          transform: translateX(0);
+        }
+      }
+      .shake {
+        animation: shake 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Mind Reader</h1>
+
+      <label for="levelSelect">Difficulty Level:</label>
+      <select id="levelSelect">
+        <option value="easy">Easy (15 guesses)</option>
+        <option value="medium" selected>Medium (10 guesses)</option>
+        <option value="hard">Hard (7 guesses)</option>
+      </select>
+
+      <label for="themeSelect">Theme:</label>
+      <select id="themeSelect" onchange="changeTheme()">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="blue">Blue</option>
+        <option value="pink">Pink</option>
+      </select>
+
+      <p id="message">
+        Game started! I have picked a number between 1 and 100. Try to guess it!
+      </p>
+
+      <input
+        type="number"
+        id="guessInput"
+        min="1"
+        max="100"
+        placeholder="Enter your guess"
+      />
+      <button onclick="checkGuess()">Guess</button>
+      <button onclick="resetGame()" id="resetButton">Restart</button>
+
+      <div id="hintArea"></div>
+      <div id="feedback">Results will appear here.</div>
+
+      <h2>Statistics</h2>
+      <p id="remainingGuesses">Remaining Guesses: 10</p>
+      <div id="statistics">
+        <p>Your Previous Guesses:</p>
+        <ul id="guessList" class="guess-list"></ul>
+        <p id="averageGuess"></p>
+        <p id="closestGuess"></p>
+        <p id="furthestGuess"></p>
+      </div>
+    </div>
+
+    <script>
+      const guessInput = document.getElementById("guessInput");
+      const feedbackArea = document.getElementById("feedback");
+      const remainingGuessesArea = document.getElementById("remainingGuesses");
+      const guessListArea = document.getElementById("guessList");
+      const messageArea = document.getElementById("message");
+      const hintArea = document.getElementById("hintArea");
+      const levelSelect = document.getElementById("levelSelect");
+      const averageGuessArea = document.getElementById("averageGuess");
+      const closestGuessArea = document.getElementById("closestGuess");
+      const furthestGuessArea = document.getElementById("furthestGuess");
+      const themeSelect = document.getElementById("themeSelect");
+      const container = document.querySelector(".container");
+
+      let MAX_GUESSES = 10;
+      let secretNumber, remainingGuesses;
+      let guessHistory = [];
+      let hintAvailable = 1;
+
+      function startGame() {
+        secretNumber = Math.floor(Math.random() * 100) + 1;
+        const level = levelSelect.value;
+        if (level === "easy") MAX_GUESSES = 15;
+        else if (level === "medium") MAX_GUESSES = 10;
+        else MAX_GUESSES = 7;
+
+        remainingGuesses = MAX_GUESSES;
+        guessHistory = [];
+        hintAvailable = 1;
+
+        messageArea.innerHTML =
+          "Game started! I have picked a number between 1 and 100. Try to guess it!";
+        feedbackArea.innerHTML = "Results will appear here.";
+        remainingGuessesArea.innerHTML =
+          "Remaining Guesses: " + remainingGuesses;
+        guessListArea.innerHTML = "";
+        averageGuessArea.innerHTML = "";
+        closestGuessArea.innerHTML = "";
+        furthestGuessArea.innerHTML = "";
+        guessInput.disabled = false;
+        document.querySelector("button").disabled = false;
+        guessInput.value = "";
+        changeTheme();
+      }
+
+      function checkGuess() {
+        const guess = parseInt(guessInput.value);
+        if (isNaN(guess) || guess < 1 || guess > 100) {
+          feedbackArea.innerHTML =
+            "Please enter a valid number between 1 and 100.";
+          feedbackArea.style.color = "orange";
+          feedbackArea.classList.add("shake");
+          setTimeout(() => feedbackArea.classList.remove("shake"), 300);
+          return;
+        }
+
+        guessHistory.push(guess);
+        remainingGuesses--;
+
+        if (guess === secretNumber) {
+          messageArea.innerHTML = `🎉 CONGRATS! You found the number in ${
+            MAX_GUESSES - remainingGuesses
+          } guesses!`;
+          feedbackArea.style.color = "green";
+          endGame(true);
+        } else if (remainingGuesses === 0) {
+          messageArea.innerHTML = `GAME OVER! No remaining guesses. The secret number was: ${secretNumber}`;
+          feedbackArea.style.color = "black";
+          endGame(false);
+        } else {
+          if (guess < secretNumber) {
+            feedbackArea.innerHTML = `⬆️ Wrong! Guess a HIGHER number. Remaining guesses: ${remainingGuesses}`;
+            feedbackArea.style.color = "blue";
+          } else {
+            feedbackArea.innerHTML = `⬇️ Wrong! Guess a LOWER number. Remaining guesses: ${remainingGuesses}`;
+            feedbackArea.style.color = "red";
+          }
+          feedbackArea.classList.add("shake");
+          setTimeout(() => feedbackArea.classList.remove("shake"), 300);
+        }
+
+        updateStatistics();
+        giveHint(guess);
+      }
+
+      function updateStatistics() {
+        remainingGuessesArea.innerHTML =
+          "Remaining Guesses: " + remainingGuesses;
+        let listHTML = "";
+        guessHistory.forEach((g) => {
+          let diff = Math.abs(secretNumber - g);
+          let color = diff <= 5 ? "green" : diff <= 15 ? "orange" : "red";
+          listHTML += `<li style="color:${color}">${g}</li>`;
+        });
+        guessListArea.innerHTML = listHTML;
+
+        const total = guessHistory.reduce((a, b) => a + b, 0);
+        averageGuessArea.innerHTML =
+          "Average Guess: " + (total / guessHistory.length).toFixed(2);
+
+        const diffs = guessHistory.map((g) => Math.abs(g - secretNumber));
+        closestGuessArea.innerHTML =
+          "Closest Guess: " + guessHistory[diffs.indexOf(Math.min(...diffs))];
+        furthestGuessArea.innerHTML =
+          "Furthest Guess: " + guessHistory[diffs.indexOf(Math.max(...diffs))];
+      }
+
+      function giveHint(guess) {
+        const diff = Math.abs(secretNumber - guess);
+        if (hintAvailable <= 0) {
+          hintArea.innerHTML = "";
+          return;
+        }
+        if (diff <= 5) {
+          hintArea.innerHTML = "🔥 Very Hot! Almost there!";
+          hintArea.style.backgroundColor = "#ffc0cb";
+        } else if (diff <= 15) {
+          hintArea.innerHTML = "Warm. You're getting close.";
+          hintArea.style.backgroundColor = "#ffebcd";
+        } else if (diff <= 30) {
+          hintArea.innerHTML = "Mild. You're a bit far.";
+          hintArea.style.backgroundColor = "#add8e6";
+        } else {
+          hintArea.innerHTML = "Cold. Guess a number further away.";
+          hintArea.style.backgroundColor = "#90ee90";
+        }
+      }
+
+      function endGame(won) {
+        guessInput.disabled = true;
+        document.querySelector("button").disabled = false;
+        hintArea.innerHTML = "";
+        hintArea.style.backgroundColor = "transparent";
+        if (won) {
+          feedbackArea.innerHTML += " CONGRATS! Click 'Restart' to play again.";
+        } else {
+          feedbackArea.innerHTML += " Click 'Restart' to play again.";
+        }
+      }
+
+      function resetGame() {
+        startGame();
+      }
+
+      function changeTheme() {
+        const selectedTheme = themeSelect.value;
+        switch (selectedTheme) {
+          case "light":
+            document.body.style.backgroundColor = "#f0f8ff";
+            document.body.style.color = "#333";
+            container.style.backgroundColor = "#fff";
+            break;
+          case "dark":
+            document.body.style.backgroundColor = "#121212";
+            document.body.style.color = "#f0f0f0";
+            container.style.backgroundColor = "#1e1e1e";
+            break;
+          case "blue":
+            document.body.style.backgroundColor = "#d0e7ff";
+            document.body.style.color = "#003366";
+            container.style.backgroundColor = "#a0c4ff";
+            break;
+          case "pink":
+            document.body.style.backgroundColor = "#ffe0f0";
+            document.body.style.color = "#660033";
+            container.style.backgroundColor = "#ffc0cb";
+            break;
+        }
+      }
+
+      guessInput.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") checkGuess();
+      });
+
+      startGame();
+    </script>
+  </body>
+</html>
